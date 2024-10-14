@@ -14,3 +14,5 @@ dependencies:
   - glpk
   - psutil=5.9.8
   - pyutilib=6.0.0
+  - flask
+  - waitress

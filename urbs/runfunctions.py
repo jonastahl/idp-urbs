@@ -53,10 +53,11 @@ def setup_solver(optim, logfile='solver.log'):
     return optim
 
 
-def run_scenario(input_files, Solver, timesteps, scenario, result_dir, dt,
+def run_scenario(Solver, timesteps, scenario, result_dir, dt,
                  objective, plot_tuples=None,  plot_sites_name=None,
                  plot_periods=None, report_tuples=None,
-                 report_sites_name=None):
+                 report_sites_name=None,
+                 config=None, input_files=None):
     """ run an urbs model for given input, time steps and scenario
 
     Args:
@@ -86,7 +87,12 @@ def run_scenario(input_files, Solver, timesteps, scenario, result_dir, dt,
 
     # scenario name, read and modify data for scenario
     sce = scenario.__name__
-    data = read_input(input_files, year)
+    if config is None:
+        data = read_input(input_files, year)
+    elif input_files is None:
+        data = read_config(config, input_files, year)
+    else:
+        raise Exception("Config and input file are None")
     data = scenario(data)
     validate_input(data)
     validate_dc_objective(data, objective)
@@ -103,6 +109,7 @@ def run_scenario(input_files, Solver, timesteps, scenario, result_dir, dt,
     optim = SolverFactory(Solver)  # cplex, glpk, gurobi, ...
     optim = setup_solver(optim, logfile=log_filename)
     result = optim.solve(prob, tee=True)
+    print(str(result.solver.termination_condition))
     assert str(result.solver.termination_condition) == 'optimal'
 
     # save problem solution (and input data) to HDF5 file

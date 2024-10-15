@@ -1,11 +1,12 @@
-from flask import Flask
+from flask import Flask, request
 from runme import run
 
 app = Flask(__name__)
 
-@app.get('/simulate')
+@app.post('/simulate')
 def simulate():
-    run()
+    config = request.get_json()
+    run(config)
     return "success!"
 
 if __name__ == '__main__':

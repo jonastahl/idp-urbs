@@ -6,8 +6,7 @@ app = Flask(__name__)
 @app.post('/simulate')
 def simulate():
     config = request.get_json()
-    run(config)
-    return "success!"
+    return run(config)
 
 if __name__ == '__main__':
     app.run()

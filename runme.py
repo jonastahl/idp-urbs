@@ -1,6 +1,9 @@
 import os
 import shutil
+from collections import defaultdict
+
 import urbs
+from urbs import get_constants
 
 
 def run(config):
@@ -39,17 +42,26 @@ def run(config):
     for country, color in my_colors.items():
         urbs.COLORS[country] = color
 
-    # select scenarios to be run
-    scenarios = [
-        urbs.scenario_base
-    ]
+    # select scenarios to be run - only use base scenario
 
-    for scenario in scenarios:
-        urbs.run_scenario(solver, timesteps, scenario,
-                          result_dir, dt, objective,
-                          config=config,
-                          plot_tuples=plot_tuples,
-                          plot_sites_name=plot_sites_name,
-                          plot_periods=plot_periods,
-                          report_tuples=report_tuples,
-                          report_sites_name=report_sites_name)
+    prob = urbs.run_scenario_config(config, solver, timesteps, urbs.scenario_base,
+                             result_dir, dt, objective,
+                             plot_tuples=plot_tuples,
+                             plot_sites_name=plot_sites_name,
+                             plot_periods=plot_periods,
+                             report_tuples=report_tuples,
+                             report_sites_name=report_sites_name)
+
+    costs, cpro, ctra, csto = get_constants(prob)
+
+    def default():
+        return defaultdict(default)
+    proc = default()
+    for ((year, site, commodity), row) in cpro.iterrows():
+        proc[site][commodity]['New'] = row['New']
+        proc[site][commodity]['Total'] = row['Total']
+
+    return {
+        'costs': costs.to_dict(),
+        'process': proc
+    }

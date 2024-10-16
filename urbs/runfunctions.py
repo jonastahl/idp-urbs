@@ -52,12 +52,10 @@ def setup_solver(optim, logfile='solver.log'):
               "'{}'!".format(optim.name))
     return optim
 
-
-def run_scenario(Solver, timesteps, scenario, result_dir, dt,
+def run_scenario_config(config, Solver, timesteps, scenario, result_dir, dt,
                  objective, plot_tuples=None,  plot_sites_name=None,
                  plot_periods=None, report_tuples=None,
-                 report_sites_name=None,
-                 config=None, input_files=None):
+                 report_sites_name=None):
     """ run an urbs model for given input, time steps and scenario
 
     Args:
@@ -87,12 +85,7 @@ def run_scenario(Solver, timesteps, scenario, result_dir, dt,
 
     # scenario name, read and modify data for scenario
     sce = scenario.__name__
-    if config is None:
-        data = read_input(input_files, year)
-    elif input_files is None:
-        data = read_config(config, input_files, year)
-    else:
-        raise Exception("Config and input file are None")
+    data = read_config(config, year)
     data = scenario(data)
     validate_input(data)
     validate_dc_objective(data, objective)
@@ -110,6 +103,61 @@ def run_scenario(Solver, timesteps, scenario, result_dir, dt,
     optim = setup_solver(optim, logfile=log_filename)
     result = optim.solve(prob, tee=True)
     print(str(result.solver.termination_condition))
+    assert str(result.solver.termination_condition) == 'optimal'
+
+    return prob
+
+
+def run_scenario(input_files, Solver, timesteps, scenario, result_dir, dt,
+                 objective, plot_tuples=None, plot_sites_name=None,
+                 plot_periods=None, report_tuples=None,
+                 report_sites_name=None):
+    """ run an urbs model for given input, time steps and scenario
+
+    Args:
+        - input_files: filenames of input Excel spreadsheets
+        - Solver: the user specified solver
+        - timesteps: a list of timesteps, e.g. range(0,8761)
+        - scenario: a scenario function that modifies the input data dict
+        - result_dir: directory name for result spreadsheet and plots
+        - dt: length of each time step (unit: hours)
+        - objective: objective function chosen (either "cost" or "CO2")
+        - plot_tuples: (optional) list of plot tuples (c.f. urbs.result_figures)
+        - plot_sites_name: (optional) dict of names for sites in plot_tuples
+        - plot_periods: (optional) dict of plot periods
+          (c.f. urbs.result_figures)
+        - report_tuples: (optional) list of (sit, com) tuples
+          (c.f. urbs.report)
+        - report_sites_name: (optional) dict of names for sites in
+          report_tuples
+
+    Returns:
+        the urbs model instance
+    """
+
+    # sets a modeled year for non-intertemporal problems
+    # (necessary for consitency)
+    year = date.today().year
+
+    # scenario name, read and modify data for scenario
+    sce = scenario.__name__
+    data = read_input(input_files, year)
+    data = scenario(data)
+    validate_input(data)
+    validate_dc_objective(data, objective)
+
+    # create model
+    prob = create_model(data, dt, timesteps, objective)
+    # prob_filename = os.path.join(result_dir, 'model.lp')
+    # prob.write(prob_filename, io_options={'symbolic_solver_labels':True})
+
+    # refresh time stamp string and create filename for logfile
+    log_filename = os.path.join(result_dir, '{}.log').format(sce)
+
+    # solve model and read results
+    optim = SolverFactory(Solver)  # cplex, glpk, gurobi, ...
+    optim = setup_solver(optim, logfile=log_filename)
+    result = optim.solve(prob, tee=True)
     assert str(result.solver.termination_condition) == 'optimal'
 
     # save problem solution (and input data) to HDF5 file

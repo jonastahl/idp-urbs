@@ -20,7 +20,7 @@ def dataFrameFromObject(data, index, indcol, columns, additional=None):
     return df.set_index(index + indcol)
 
 
-def read_config(config, input_files, year):
+def read_config(config, year):
     """Read Excel input file and prepare URBS input dict.
 
     Reads the Excel spreadsheets that adheres to the structure shown in

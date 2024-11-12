@@ -60,7 +60,7 @@ def run(config):
     for ((year, site, commodity), row) in cpro.iterrows():
         proc[site][commodity]['New'] = row['New']
         proc[site][commodity]['Total'] = row['Total']
-
+    #abitrary comment
     return {
         'costs': costs.to_dict(),
         'process': proc

@@ -1,9 +1,12 @@
+import json
 from collections import defaultdict
 
+import pandas as pd
 from flask import Flask, request
 
 import urbs
-from urbs import get_constants
+from urbs import get_constants, get_input, get_timeseries
+from urbs.util import is_string
 
 app = Flask(__name__)
 
@@ -60,14 +63,25 @@ def run(config):
 
     def default():
         return defaultdict(default)
+
     proc = default()
+    print("REPORTING")
     for ((year, site, commodity), row) in cpro.iterrows():
         proc[site][commodity]['New'] = row['New']
         proc[site][commodity]['Total'] = row['Total']
 
+    # TESTING ONLY
+    # quick and dirty
+
+    (site) = get_input(prob, 'demand').columns
+
+    elec = get_timeseries(prob, 2024, "Elec", "Main", timesteps=None)
     return {
         'costs': costs.to_dict(),
-        'process': proc
+        'process': proc,
+        'created': json.loads(elec[0].to_json()),
+        'demand': json.loads(elec[1].to_json()),
+        'storage': json.loads(elec[2].to_json()),
     }
 
 if __name__ == '__main__':

@@ -1,8 +1,6 @@
 import numpy as np
-import pandas as pd
 import os
 import glob
-from xlrd import XLRDError
 import pyomo.core as pyomo
 from .features.modelhelper import *
 from .identify import *
@@ -67,12 +65,26 @@ def read_config(config, year):
     c_commodity = []
     c_process = []
     c_commodity_process = []
+    supim = []
+    demand = []
     for (site, dataSite) in config['site'].items():
         c_com = dataFrameFromObject(dataSite['commodity'], ['Site', 'Commodity'], ['Type'],
                                     ['price', 'max', 'maxperhour'],
                                     {'Site': site})
         c_com.replace('inf', np.inf, inplace=True)
         c_commodity.append(c_com)
+
+        for (commodity, dataCom) in dataSite['commodity'].items():
+            if 'supim' in dataCom:
+                df = pd.DataFrame(dataCom['supim'], columns=[f"{site}.{commodity}"])
+                df.index.name = 't'
+                df.columns = split_columns(df.columns)
+                supim.append(df)
+            if 'demand' in dataCom:
+                df = pd.DataFrame(dataCom['demand'], columns=[f"{site}.{commodity}"])
+                df.index.name = 't'
+                df.columns = split_columns(df.columns)
+                demand.append(df)
 
         c_pro = dataFrameFromObject(dataSite['process'], ['Site', 'Process'], [],
                                     ['inst-cap', 'cap-lo', 'cap-up', 'max-grad', 'min-fraction', 'inv-cost', 'fix-cost',
@@ -93,25 +105,9 @@ def read_config(config, year):
     pro_com.append(pd.concat([pd.concat(c_commodity_process)],
                              keys=[support_timeframe],
                              names=['support_timeframe']))
-
-    supim = []
-    for (site, dataSite) in config['supim'].items():
-        for (commodity, dataCom) in dataSite.items():
-            df = pd.DataFrame(dataCom, columns=[f"{site}.{commodity}"])
-            df.index.name = 't'
-            df.columns = split_columns(df.columns)
-            supim.append(df)
     sup.append(pd.concat([pd.concat(supim, axis=1)],
                          keys=[support_timeframe],
                          names=['support_timeframe']))
-
-    demand = []
-    for (site, dataSite) in config['demand'].items():
-        for (commodity, dataCom) in dataSite.items():
-            df = pd.DataFrame(dataCom, columns=[f"{site}.{commodity}"])
-            df.index.name = 't'
-            df.columns = split_columns(df.columns)
-            demand.append(df)
     dem.append(pd.concat([pd.concat(demand, axis=1)],
                          keys=[support_timeframe],
                          names=['support_timeframe']))

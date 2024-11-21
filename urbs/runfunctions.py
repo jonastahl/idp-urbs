@@ -1,4 +1,3 @@
-import os
 import pyomo.environ
 from pyomo.opt.base import SolverFactory
 from datetime import datetime, date

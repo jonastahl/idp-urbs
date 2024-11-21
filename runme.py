@@ -1,11 +1,9 @@
 from collections import defaultdict
-import json
 from urbs.input import get_input
-from urbs.output import get_constants, get_timeseries
+from urbs.output import get_timeseries
 import urbs
 from urbs import get_constants
-
-#sys.path.append("/home/merhart/Documents/vurbs/lib/python3.12/site-packages/glpk.cpython-312-x86_64-linux-gnu.so")
+from datetime import date
 
 
 def run(config):
@@ -45,36 +43,35 @@ def run(config):
         urbs.COLORS[country] = color
 
     # select scenarios to be run - only use base scenario
-
     prob = urbs.run_scenario_config(config, solver, timesteps, urbs.scenario_base,
-                             result_dir, dt, objective,
-                             plot_tuples=plot_tuples,
-                             plot_sites_name=plot_sites_name,
-                             plot_periods=plot_periods,
-                             report_tuples=report_tuples,
-                             report_sites_name=report_sites_name)
+                                    result_dir, dt, objective,
+                                    plot_tuples=plot_tuples,
+                                    plot_sites_name=plot_sites_name,
+                                    plot_periods=plot_periods,
+                                    report_tuples=report_tuples,
+                                    report_sites_name=report_sites_name)
 
     costs, cpro, ctra, csto = get_constants(prob)
 
     def default():
         return defaultdict(default)
+
     proc = default()
     print("REPORTING")
     for ((year, site, commodity), row) in cpro.iterrows():
         proc[site][commodity]['New'] = row['New']
         proc[site][commodity]['Total'] = row['Total']
 
-    # TESTING ONLY
-    # quick and dirty 
- 
-    (site) = get_input(prob, 'demand').columns 
-    
-    elec = get_timeseries(prob, 2024, "Elec", "Main", timesteps=None)
+    results = default()
+    for (site, com) in get_input(prob, 'demand').columns.values.tolist():
+        data = get_timeseries(prob, date.today().year, "Elec", "Main", timesteps=None)
+        results[site][com] = {
+            'created': data[0].to_dict(),
+            'demand': data[1].to_dict()['Demand'],
+            'storage': data[2].to_dict()
+        }
     return {
         'costs': costs.to_dict(),
         'process': proc,
-        'created': json.loads(elec[0].to_json()),
-        'demand': json.loads(elec[1].to_json()),
-        'storage': json.loads(elec[2].to_json()),
-
+        'results': results,
     }

@@ -61,9 +61,16 @@ def run(config):
         proc[site][commodity]['New'] = row['New']
         proc[site][commodity]['Total'] = row['Total']
 
+    sto = default()
+    for ((year, site, storage, commodity), row) in csto.iterrows():
+        sto[site][commodity][storage]['C New'] = row['C New']
+        sto[site][commodity][storage]['C Total'] = row['C Total']
+        sto[site][commodity][storage]['P New'] = row['P New']
+        sto[site][commodity][storage]['P Total'] = row['P Total']
+
     results = default()
     for (site, com) in get_input(prob, 'demand').columns.values.tolist():
-        data = get_timeseries(prob, date.today().year, "Elec", "Main", timesteps=None)
+        data = get_timeseries(prob, date.today().year, "Elec", site, timesteps=None)
         results[site][com] = {
             'created': {k: list(v.values()) for k,v in data[0].to_dict().items()},
             'demand': list(data[1].to_dict()['Demand'].values()),
@@ -72,5 +79,6 @@ def run(config):
     return {
         'costs': costs.to_dict(),
         'process': proc,
+        'storage': sto,
         'results': results,
     }

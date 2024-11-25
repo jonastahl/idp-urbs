@@ -1,6 +1,8 @@
 import numpy as np
 import os
 import glob
+
+import pandas as pd
 import pyomo.core as pyomo
 from .features.modelhelper import *
 from .identify import *
@@ -19,7 +21,7 @@ def dataFrameFromObject(data, index, indcol, columns, additional=None):
 
 
 def read_config(config, year):
-    """Read Excel input file and prepare URBS input dict.
+    """Read JSON input config and prepare URBS input dict.
 
     Reads the Excel spreadsheets that adheres to the structure shown in
     mimo-example.xlsx. Column titles in 'Demand' and 'SupIm' are split, so that
@@ -67,6 +69,7 @@ def read_config(config, year):
     c_commodity_process = []
     supim = []
     demand = []
+    c_storage = []
     for (site, dataSite) in config['site'].items():
         c_com = dataFrameFromObject(dataSite['commodity'], ['Site', 'Commodity'], ['Type'],
                                     ['price', 'max', 'maxperhour'],
@@ -85,6 +88,18 @@ def read_config(config, year):
                 df.index.name = 't'
                 df.columns = split_columns(df.columns)
                 demand.append(df)
+            if 'storage' in dataCom:
+                c_stor = dataFrameFromObject(dataCom['storage'], ['Site', 'Commodity', 'Storage'], [],
+                                             ['inst-cap-c', 'cap-lo-c', 'cap-up-c', 'inst-cap-p', 'cap-lo-p',
+                                              'cap-up-p', 'eff-in', 'eff-out', 'inv-cost-p', 'inv-cost-c',
+                                              'fix-cost-p', 'fix-cost-c', 'var-cost-p', 'var-cost-c', 'wacc',
+                                              'depreciation', 'init', 'discharge', 'ep-ratio'],
+                                             {'Commodity': commodity, 'Site': site})
+                c_stor.replace('inf', np.inf, inplace=True)
+                c_stor = c_stor.reorder_levels(['Site', 'Storage', 'Commodity'])
+                c_storage.append(c_stor)
+            else:
+                c_storage.append(pd.DataFrame())
 
         c_pro = dataFrameFromObject(dataSite['process'], ['Site', 'Process'], [],
                                     ['inst-cap', 'cap-lo', 'cap-up', 'max-grad', 'min-fraction', 'inv-cost', 'fix-cost',
@@ -111,10 +126,12 @@ def read_config(config, year):
     dem.append(pd.concat([pd.concat(demand, axis=1)],
                          keys=[support_timeframe],
                          names=['support_timeframe']))
+    sto.append(pd.concat([pd.concat(c_storage, axis=1)],
+                         keys=[support_timeframe],
+                         names=['support_timeframe']))
 
     # currently unused configs
     tra.append(pd.DataFrame())
-    sto.append(pd.DataFrame())
     ds.append(pd.DataFrame())
     bsp.append(pd.DataFrame())
     ef.append(pd.DataFrame())

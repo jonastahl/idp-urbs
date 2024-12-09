@@ -60,6 +60,7 @@ def read_config(config, year):
                         names=['support_timeframe']))
 
     c_site = dataFrameFromObject(config['site'], ['Name'], [], ['area'])
+    c_site.replace('inf', np.inf, inplace=True)
     sit.append(pd.concat([c_site],
                          keys=[support_timeframe],
                          names=['support_timeframe']))

@@ -1,20 +1,23 @@
-import json
+import threading
 from collections import defaultdict
 from datetime import date
 
-import pandas as pd
+import requests
 from flask import Flask, request
 
 import urbs
 from urbs import get_constants, get_input, get_timeseries
-from urbs.util import is_string
 
 app = Flask(__name__)
 
 @app.post('/simulate')
-def simulate():
-    config = request.get_json()
-    run(config)
+def trigger_simulation():
+    threading.Thread(target=simulate, args=[request.get_json()]).start()
+    return "Simulation started"
+
+
+def simulate(config):
+    requests.post(config['callback'], json=run(config))
 
 def run(config):
     result_name = 'Run'

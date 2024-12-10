@@ -9,13 +9,22 @@
             "area": 20,
             "commodity": {
                 "Solar": {
-                    "Type": "SupIm"
+                    "Type": "SupIm",
+                    "supim": [
+                        0, 0, 0, 1, 1, 1
+                    ]
                 },
                 "Wind": {
-                    "Type": "SupIm"
+                    "Type": "SupIm",
+                    "supim": [
+                        1, 1, 1, 0, 0, 0
+                    ]
                 },
                 "Elec": {
-                    "Type": "Demand"
+                    "Type": "Demand",
+                    "demand": [
+                      10, 10, 10, 10, 10, 10
+                    ]
                 },
                 "CO2": {
                     "Type": "Env",
@@ -71,23 +80,6 @@
                     }
                 }
             }
-        }
-    },
-    "supim": {
-        "Main": {
-            "Wind": [
-                1, 1, 1, 0, 0, 0
-            ],
-            "Solar": [
-                0, 0, 0, 1, 1, 1
-            ]
-        }
-    },
-    "demand": {
-        "Main": {
-            "Elec": [
-                10, 10, 10, 10, 10, 10
-            ]
         }
     }
 }

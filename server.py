@@ -12,9 +12,13 @@ app = Flask(__name__)
 
 @app.post('/simulate')
 def trigger_simulation():
-    threading.Thread(target=simulate, args=[request.get_json()]).start()
-    return "Simulation started"
-
+    print(request.data)
+    config = request.get_json()
+    if 'callback' in config:
+        threading.Thread(target=simulate, args=[config]).start()
+        return "Simulation started"
+    else:
+        return run(config)
 
 def simulate(config):
     requests.post(config['callback'], json=run(config))

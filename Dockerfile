@@ -10,6 +10,11 @@ RUN python -m venv urbs-env \
     && ./urbs-env/bin/pip install -r urbs-env.txt \
     && ./urbs-env/bin/pip install flask waitress
 
+
+RUN apt-get update && apt-get install -y \
+    gcc libglpk-dev
+RUN ./urbs-env/bin/pip install glpk
+
 # makes RUN commands use the new environment
 SHELL ["conda", "run", "-n", "urbs-env", "/bin/bash", "-c"]
 

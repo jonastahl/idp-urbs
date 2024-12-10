@@ -12,16 +12,11 @@ RUN python -m venv urbs-env \
 
 
 RUN apt-get update && apt-get install -y \
-    gcc libglpk-dev
+    gcc libglpk-dev glpk-utils
 RUN ./urbs-env/bin/pip install glpk
-
-# makes RUN commands use the new environment
-SHELL ["conda", "run", "-n", "urbs-env", "/bin/bash", "-c"]
 
 COPY urbs urbs
 COPY runme.py .
 COPY server.py .
-
-EXPOSE 5000
 
 CMD ["./urbs-env/bin/python", "-m", "waitress", "--port=5000", "server:app"]

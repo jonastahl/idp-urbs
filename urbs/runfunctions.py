@@ -101,10 +101,8 @@ def run_scenario_config(config, Solver, timesteps, scenario, result_dir, dt,
     optim = SolverFactory(Solver)  # cplex, glpk, gurobi, ...
     optim = setup_solver(optim, logfile=log_filename)
     result = optim.solve(prob, tee=True)
-    print(str(result.solver.termination_condition))
-    assert str(result.solver.termination_condition) == 'optimal'
 
-    return prob
+    return (result.solver.termination_condition, prob)
 
 
 def run_scenario(input_files, Solver, timesteps, scenario, result_dir, dt,

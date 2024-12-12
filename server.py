@@ -1,3 +1,4 @@
+import os
 import threading
 from collections import defaultdict
 from datetime import date
@@ -10,21 +11,30 @@ from urbs import get_constants, get_input, get_timeseries
 
 app = Flask(__name__)
 
+
 @app.post('/simulate')
 def trigger_simulation():
     config = request.get_json()
     if 'callback' in config:
-        threading.Thread(target=simulate, args=[config]).start()
+        thread = threading.Thread(target=simulate, args=[config])
+        thread.start()
         return "Simulation started"
     else:
         return run(config)
 
+
 def simulate(config):
     requests.post(config['callback'], json=run(config))
 
+
+def scenario(data):
+    return data
+
+
 def run(config):
     result_name = 'Run'
-    result_dir = urbs.prepare_result_directory(result_name)  # name + time stamp
+    result_dir = urbs.prepare_result_directory(result_name)
+    log_file = os.path.join(result_dir, scenario.__name__ + '.log')
 
     # objective function
     objective = 'cost'  # set either 'cost' or 'CO2' as objective
@@ -36,36 +46,32 @@ def run(config):
     timesteps = range(config['c_timesteps'])
     dt = 1  # length of each time step (unit: hours)
 
-    # detailed reporting commodity/sites
-    report_tuples = []
-
-    # optional: define names for sites in report_tuples
-    report_sites_name = {}
-
-    # plotting commodities/sites
-    plot_tuples = []
-
-    # optional: define names for sites in plot_tuples
-    plot_sites_name = {}
-
     # plotting timesteps
     plot_periods = {
         'all': timesteps[1:]
     }
 
-    # add or change plot colors
-    my_colors = {}
-    for country, color in my_colors.items():
-        urbs.COLORS[country] = color
-
     # select scenarios to be run - only use base scenario
-    prob = urbs.run_scenario_config(config, solver, timesteps, urbs.scenario_base,
-                                    result_dir, dt, objective,
-                                    plot_tuples=plot_tuples,
-                                    plot_sites_name=plot_sites_name,
-                                    plot_periods=plot_periods,
-                                    report_tuples=report_tuples,
-                                    report_sites_name=report_sites_name)
+    try:
+        (result_type, prob) = urbs.run_scenario_config(config, solver, timesteps, scenario,
+                                                       result_dir, dt, objective,
+                                                       plot_tuples=[],
+                                                       plot_sites_name={},
+                                                       plot_periods=plot_periods,
+                                                       report_tuples=[],
+                                                       report_sites_name={})
+    except Exception:
+        try:
+            with open(log_file, 'r') as log_file:
+                log = log_file.read()
+        except (FileNotFoundError, IOError):
+            log = "Simulation failed in preparation. Optimizer was not started."
+        return {
+            'data': {},
+            'status': 'Error',
+            'log': log
+        }
+
 
     costs, cpro, ctra, csto = get_constants(prob)
 
@@ -92,12 +98,23 @@ def run(config):
             'demand': list(data[1].to_dict()['Demand'].values()),
             'storage': {k: list(v.values()) for k, v in data[2].to_dict().items()}
         }
+
+    try:
+        with open(log_file, 'r') as log_file:
+            log = log_file.read()
+    except (FileNotFoundError, IOError):
+        log = "Error reading log file"
     return {
-        'costs': costs.to_dict(),
-        'process': proc,
-        'storage': sto,
-        'results': results,
+        'data': {
+            'costs': costs.to_dict(),
+            'process': proc,
+            'storage': sto,
+            'results': results
+        },
+        'status': result_type,
+        'log': log
     }
+
 
 if __name__ == '__main__':
     app.run()
